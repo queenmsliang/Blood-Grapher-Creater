@@ -172,6 +172,33 @@ const ALIAS={'W.B.C.':'WBC','R.B.C.':'RBC','Platelet count':'Plt','Platelet cou'
  'Baso.':'Baso','CRP/hs-CRP':'CRP','CRP/hs-':'CRP','hs-CRP':'CRP','Creatinine':'CREA','Crea':'CREA',
  'S-GPT(ALT)':'ALT','S-GPT':'ALT','S-GOT(AST)':'AST','S-GOT':'AST','Alb':'Albumin','LD':'LDH'};
 function canonKey(raw){let s=(raw||'').trim();if(ALIAS[s])return ALIAS[s];s=s.replace(/\.$/,'');if(ALIAS[s])return ALIAS[s];return s;}
+const DEFS={
+ WBC:'白血球：對抗感染的免疫細胞。過高常見於感染或發炎，過低則免疫力下降、易感染。',
+ RBC:'紅血球：負責攜帶氧氣的血球。偏低代表貧血。',
+ Hb:'血紅素：紅血球中攜帶氧氣的蛋白質。偏低代表貧血，易疲倦、喘。',
+ Hct:'血容比：紅血球佔全血的體積比例，與貧血程度相關。',
+ Plt:'血小板：幫助止血與凝血的血球。過低容易出血、瘀青。',
+ Seg:'噬中性球：白血球的一種，主力對抗細菌。偏低時細菌感染風險升高。',
+ Lymph:'淋巴球：白血球的一種，負責病毒免疫與免疫記憶。',
+ Mono:'單核球：白血球的一種，吞噬病原、清除死細胞。',
+ Eos:'嗜酸性球：白血球的一種，與過敏及寄生蟲反應有關。',
+ Baso:'嗜鹼性球：白血球中數量最少的一種，參與過敏與發炎反應。',
+ Band:'帶狀核球：未成熟的嗜中性球。升高常代表急性感染。',
+ CRP:'發炎指數(C反應蛋白)：發炎或感染時上升，用來追蹤發炎程度。',
+ Na:'鈉：主要電解質，維持體液平衡與神經肌肉功能。',
+ K:'鉀：電解質，影響心臟與肌肉功能。過高或過低都可能危險。',
+ CREA:'肌酸酐：反映腎功能的指標。偏高代表腎功能下降。',
+ ALT:'肝功能(ALT/GPT)：肝細胞內的酵素。偏高代表肝細胞受損。',
+ AST:'肝功能(AST/GOT)：肝或肌肉受損時上升。',
+ Albumin:'白蛋白：肝臟製造的蛋白質，反映營養與肝功能狀態。',
+ Ca:'鈣：影響骨骼、神經與肌肉功能的電解質。',
+ BUN:'尿素氮：反映腎功能與蛋白質代謝，偏高可能腎功能下降或脫水。',
+ LDH:'乳酸脫氫酶：細胞受損時上升，部分腫瘤或溶血也會偏高。',
+ MCV:'平均紅血球體積：用來判斷貧血類型（大球性／小球性）。',
+ MCH:'平均紅血球血紅素量：紅血球攜氧量指標之一。',
+ MCHC:'平均紅血球血紅素濃度：紅血球內血紅素濃度。',
+ RDW:'紅血球分布寬度：紅血球大小不均的程度。'
+};
 function nameOf(k){return CANON[k]?CANON[k].n:k;}
 function unitOf(k){return CANON[k]?CANON[k].u:'';}
 
@@ -295,7 +322,7 @@ function render(){
     const meta=STORE.meta[k]||{};const color=palette[i%palette.length];
     const refTxt=(meta.lo!=null&&meta.hi!=null)?(meta.lo+' – '+meta.hi+' '+(meta.unit||'')):'（無參考值）';
     const card=document.createElement('div');card.className='card';
-    card.innerHTML=`<div class="hd"><div><h3>${nameOf(k)}</h3>
+    card.innerHTML=`<div class="hd"><div><h3 title="${DEFS[k]||''}" style="cursor:help">${nameOf(k)}</h3>
       <p class="ref">健康參考值 <span class="pill">${refTxt}</span></p></div>
       <button class="mini" data-k="${k}">⬇ PNG</button></div><div class="chartbox"><canvas></canvas></div>`;
     cbox.appendChild(card);
