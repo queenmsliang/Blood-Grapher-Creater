@@ -117,6 +117,20 @@
     <button class="btn warn" id="clearAll">清除全部</button>
   </div>
 
+  <div class="panel">
+    <h2>顯示區間</h2>
+    <div class="row">
+      <div class="fld"><label>起（民國）</label><input id="rFrom" placeholder="115/04/01" size="12"></div>
+      <div class="fld"><label>迄（民國）</label><input id="rTo" placeholder="115/07/02" size="12"></div>
+      <button class="btn" id="rApply">套用</button>
+      <button class="btn plain" id="rAll">顯示全部</button>
+      <button class="btn plain" id="r1m">近1個月</button>
+      <button class="btn plain" id="r3m">近3個月</button>
+      <button class="btn plain" id="r6m">近半年</button>
+    </div>
+    <div class="status" id="rInfo"></div>
+  </div>
+
   <div id="charts"></div>
   <div id="tablesWrap"></div>
 
@@ -208,14 +222,21 @@ function buildAxis(){
   if(!dates.length)return{dates:[],xOf:{},min:0,max:1,dataDates:[]};
   const min=parseGuo(dates[0]);
   const xOf={};dates.forEach(d=>xOf[d]=Math.round((parseGuo(d)-min)/86400000));
-  const dataDates=[...new Set(Object.values(STORE.readings).flatMap(o=>Object.keys(o)))]
+  let dataDates=[...new Set(Object.values(STORE.readings).flatMap(o=>Object.keys(o)))]
     .filter(d=>parseGuo(d)).sort((a,b)=>parseGuo(a)-parseGuo(b));
+  if(FILTER.from){const f=parseGuo(FILTER.from);if(f)dataDates=dataDates.filter(d=>parseGuo(d)>=f);}
+  if(FILTER.to){const t=parseGuo(FILTER.to);if(t)dataDates=dataDates.filter(d=>parseGuo(d)<=t);}
   const xs=dataDates.map(d=>xOf[d]);
-  return{dates,xOf,min:Math.min(...xs)-1,max:Math.max(...xs)+1,dataDates};
+  return{dates,xOf,min:xs.length?Math.min(...xs)-1:0,max:xs.length?Math.max(...xs)+1:1,dataDates};
 }
 
 const charts={};
 const ptR=window.innerWidth<700?2.6:4;
+let FILTER={from:null,to:null};
+function toGuo(d){return (d.getFullYear()-1911)+'/'+(d.getMonth()+1)+'/'+d.getDate();}
+function allDatesSorted(){const s=new Set();Object.values(STORE.readings).forEach(o=>Object.keys(o).forEach(d=>s.add(d)));return [...s].filter(d=>parseGuo(d)).sort((a,b)=>parseGuo(a)-parseGuo(b));}
+function updateRangeInfo(ax){const el=document.getElementById('rInfo');if(!el)return;
+  el.textContent=(FILTER.from||FILTER.to)?('目前顯示：'+(FILTER.from||'最早')+' ～ '+(FILTER.to||'最新')+'（'+ax.dataDates.length+' 個檢驗日）'):('顯示全部（'+ax.dataDates.length+' 個檢驗日）');}
 function keysInOrder(){
   const ks=Object.keys(STORE.readings).filter(k=>Object.keys(STORE.readings[k]).length);
   return ks.sort((a,b)=>{let ia=ORDER.indexOf(a),ib=ORDER.indexOf(b);if(ia<0)ia=999;if(ib<0)ib=999;return ia-ib||a.localeCompare(b);});
@@ -227,6 +248,8 @@ function render(){
   const ks=keysInOrder();
   const ax=buildAxis();
   updateStatus(ks,ax);
+  updateRangeInfo(ax);
+  if(ks.length && !ax.dataDates.length){cbox.innerHTML='<div class="empty">選定的區間內沒有資料，請調整日期或按「顯示全部」。</div>';return;}
   if(!ks.length){cbox.innerHTML='<div class="empty">還沒有資料。請上傳健保 HTML 檔，或用上方「手動新增數據」，或點工具列「載入範例」。</div>';return;}
   const evAnn={};
   STORE.events.forEach((e,i)=>{const x=ax.xOf[e.date];if(x==null)return;
@@ -354,6 +377,13 @@ document.getElementById('loadDemo').onclick=()=>{
   ['Plt','Hb','WBC','CRP'].forEach(k=>{STORE.meta[k]={unit:CANON[k].u,lo:CANON[k].lo,hi:CANON[k].hi};});
   save();renderEvents();render();};
 
+function applyRange(){FILTER.from=document.getElementById('rFrom').value.trim()||null;FILTER.to=document.getElementById('rTo').value.trim()||null;render();}
+function preset(m){const all=allDatesSorted();if(!all.length){alert('尚無資料');return;}const last=parseGuo(all[all.length-1]);const from=new Date(last);from.setMonth(from.getMonth()-m);FILTER.from=toGuo(from);FILTER.to=all[all.length-1];document.getElementById('rFrom').value=FILTER.from;document.getElementById('rTo').value=FILTER.to;render();}
+document.getElementById('rApply').onclick=applyRange;
+document.getElementById('rAll').onclick=()=>{FILTER={from:null,to:null};document.getElementById('rFrom').value='';document.getElementById('rTo').value='';render();};
+document.getElementById('r1m').onclick=()=>preset(1);
+document.getElementById('r3m').onclick=()=>preset(3);
+document.getElementById('r6m').onclick=()=>preset(6);
 load();fillKeySelect();renderEvents();render();
 </script>
 </body>
