@@ -114,6 +114,7 @@
     <button class="btn plain" id="impBtn">匯入資料 (JSON)</button>
     <input id="impJson" type="file" accept=".json" hidden>
     <button class="btn plain" id="loadDemo">載入範例</button>
+    <button class="btn plain" id="clearView">清空畫面</button>
     <button class="btn warn" id="clearAll">清除全部</button>
   </div>
 
@@ -384,6 +385,11 @@ document.getElementById('rAll').onclick=()=>{FILTER={from:null,to:null};document
 document.getElementById('r1m').onclick=()=>preset(1);
 document.getElementById('r3m').onclick=()=>preset(3);
 document.getElementById('r6m').onclick=()=>preset(6);
+document.getElementById('clearView').onclick=function(){
+  const hide=this.dataset.h!=='1';this.dataset.h=hide?'1':'0';
+  document.getElementById('charts').style.display=hide?'none':'';
+  document.getElementById('tablesWrap').style.display=hide?'none':'';
+  this.textContent=hide?'顯示畫面':'清空畫面';};
 load();fillKeySelect();renderEvents();render();
 </script>
 </body>
