@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>血液數值圖表產生器</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  :root{--bg:#f4f7fa;--card:#fff;--ink:#1f2d3d;--sub:#6b7c8f;--line:#e3e9f0;--good:#e8f6ee;--goodln:#9bcdb0;--accent:#2c7a4b;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans CJK TC",system-ui,sans-serif;}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 18px 70px;}
+  h1{font-size:24px;margin:0 0 4px;text-align:center;}
+  .lead{text-align:center;color:var(--sub);font-size:14px;margin:0 0 18px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:18px;box-shadow:0 4px 14px rgba(31,45,61,.04);}
+  .panel h2{font-size:16px;margin:0 0 12px;border-left:4px solid var(--goodln);padding-left:10px;}
+  details.help summary{cursor:pointer;font-weight:600;color:var(--accent);}
+  details.help{margin-bottom:18px;background:var(--good);border:1px solid var(--goodln);border-radius:12px;padding:12px 16px;}
+  details.help ol{margin:10px 0 4px;padding-left:20px;line-height:1.8;font-size:14px;}
+  #drop{border:2px dashed var(--goodln);border-radius:14px;padding:26px;text-align:center;color:var(--sub);
+    background:#fbfefc;cursor:pointer;transition:.15s;}
+  #drop.hot{background:#e8f6ee;border-color:var(--accent);color:var(--accent);}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+  .fld{display:flex;flex-direction:column;gap:4px;}
+  .fld label{font-size:12px;color:var(--sub);}
+  input,select{font-family:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;}
+  input[type=color]{padding:2px;width:44px;height:36px;}
+  .btn{cursor:pointer;border:1px solid var(--goodln);background:var(--good);color:var(--accent);
+    border-radius:22px;padding:8px 18px;font-size:14px;font-weight:600;font-family:inherit;transition:.15s;}
+  .btn:hover{background:#d6efe0;}
+  .btn.plain{background:#fff;border-color:var(--line);color:var(--sub);}
+  .btn.warn{background:#fdeceb;border-color:#f0b7b2;color:#c0392b;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 20px;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .chip{font-size:13px;background:#eef4f9;border:1px solid var(--line);border-radius:20px;padding:4px 10px;display:flex;align-items:center;gap:8px;}
+  .chip b{font-weight:600;}
+  .chip button{border:none;background:none;color:#c0392b;cursor:pointer;font-size:15px;line-height:1;}
+  .status{font-size:13px;color:var(--sub);margin-top:10px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 12px;margin-bottom:18px;box-shadow:0 4px 14px rgba(31,45,61,.04);}
+  .card .hd{display:flex;justify-content:space-between;align-items:flex-start;}
+  .card h3{margin:0 0 2px;font-size:17px;}
+  .card .ref{font-size:12px;color:var(--sub);margin:0 0 8px;}
+  .card .ref .pill{background:var(--good);color:var(--accent);border:1px solid var(--goodln);padding:1px 8px;border-radius:20px;margin-left:4px;}
+  .mini{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:8px;padding:4px 10px;font-size:12px;white-space:nowrap;}
+  .mini:hover{border-color:var(--goodln);color:var(--accent);}
+  .chartbox{position:relative;height:240px;}
+  .section-h{font-size:19px;font-weight:700;margin:30px 0 14px;border-left:5px solid var(--goodln);padding-left:12px;}
+  .month-block{margin-bottom:24px;}
+  .month-block h4{font-size:15px;margin:0 0 8px;}
+  .tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
+  table.mtab{border-collapse:collapse;width:100%;font-size:13px;background:#fff;}
+  .mtab th,.mtab td{border:1px solid var(--line);padding:6px 10px;text-align:center;white-space:nowrap;}
+  .mtab thead th{background:#eef4f9;color:#445463;}
+  .mtab td.lab{text-align:left;background:#fafcfe;font-weight:600;min-width:150px;}
+  .mtab td.lab small{color:var(--sub);font-weight:400;font-size:11px;}
+  .mtab td.hi{color:#f5821f;font-weight:700;}
+  .empty{text-align:center;color:var(--sub);padding:30px;}
+  footer{text-align:center;color:var(--sub);font-size:12px;margin-top:26px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>血液數值圖表產生器</h1>
+  <p class="lead">上傳健保署「檢驗檢查結果」HTML 檔即自動生成趨勢圖　·　免安裝、免連 Claude、資料只存在你的瀏覽器</p>
+
+  <details class="help">
+    <summary>使用說明（點開）</summary>
+    <ol>
+      <li><b>健保 HTML 檔：</b>把「檢驗檢查結果_xxx.html」拖進下方框框（可一次多個），系統會自動抓出日期、項目、數值與參考值並畫圖。</li>
+      <li><b>PDF 截圖 / 其他：</b>PDF 是圖片無法自動讀，請用「手動新增數據」把數值打進去（選項目、填日期與數值）。</li>
+      <li><b>關鍵事件：</b>打血小板、發燒、復發等不在檢驗資料裡，用「手動新增事件」加上，圖上會出現垂直虛線標記。</li>
+      <li><b>存檔：</b>資料自動存在這台電腦的瀏覽器。可用「匯出資料」下載 JSON 備份，或在別台電腦「匯入資料」。</li>
+      <li><b>圖片：</b>每張圖右上角可下載 PNG，或用「下載全部 PNG」。</li>
+    </ol>
+    <div style="font-size:12px;color:#6b7c8f">※ 首次開啟需連網載入繪圖元件。本工具僅供照護紀錄與就醫溝通，判讀請以醫師為準。</div>
+  </details>
+
+  <div class="panel">
+    <h2>① 上傳健保 HTML 檔</h2>
+    <div id="drop">把「檢驗檢查結果_xxx.html」拖到這裡，或<u>點此選擇檔案</u>（可多選）
+      <input id="file" type="file" accept=".html,.htm" multiple hidden>
+    </div>
+    <div class="status" id="status">尚未載入任何資料。</div>
+  </div>
+
+  <div class="panel">
+    <h2>② 手動新增數據（PDF 截圖用這個）</h2>
+    <div class="row">
+      <div class="fld"><label>檢驗日期（民國，如 115/07/02）</label><input id="mDate" placeholder="115/07/02" size="12"></div>
+      <div class="fld"><label>指標</label><select id="mKey"></select></div>
+      <div class="fld" id="mCustomWrap" style="display:none"><label>自訂指標名稱</label><input id="mCustom" placeholder="例如 LDH" size="10"></div>
+      <div class="fld"><label>數值</label><input id="mVal" type="number" step="any" size="8"></div>
+      <button class="btn" id="mAdd">新增數據</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>③ 手動新增事件（打血小板 / 發燒 / 復發…）</h2>
+    <div class="row">
+      <div class="fld"><label>日期（民國）</label><input id="eDate" placeholder="115/06/22" size="12"></div>
+      <div class="fld"><label>事件描述</label><input id="eText" placeholder="打一包血小板" size="18"></div>
+      <div class="fld"><label>顏色</label><input id="eColor" type="color" value="#e0457b"></div>
+      <button class="btn" id="eAdd">新增事件</button>
+    </div>
+    <div class="chips" id="eList"></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn" id="dlAll">⬇ 下載全部 PNG</button>
+    <button class="btn plain" id="expJson">匯出資料 (JSON)</button>
+    <button class="btn plain" id="impBtn">匯入資料 (JSON)</button>
+    <input id="impJson" type="file" accept=".json" hidden>
+    <button class="btn plain" id="loadDemo">載入範例</button>
+    <button class="btn warn" id="clearAll">清除全部</button>
+  </div>
+
+  <div id="charts"></div>
+  <div id="tablesWrap"></div>
+
+  <footer>血液數值圖表產生器　·　資料儲存在本機瀏覽器，不會上傳　·　僅供照護與就醫溝通參考，請以主治醫師判讀為準。</footer>
+</div>
+
+<script>
+Chart.register(window['chartjs-plugin-annotation']);
+Chart.register(window['ChartDataLabels']);
+const whiteBg={id:'whiteBg',beforeDraw:c=>{const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.restore();}};
+
+/* ---------- 已知指標：中文名、單位、預設參考範圍、顯示順序 ---------- */
+const CANON={
+ WBC:{n:'白血球 WBC',u:'×10³/µL',lo:4,hi:10}, RBC:{n:'紅血球 RBC',u:'×10⁶/µL',lo:4.2,hi:5.4},
+ Hb:{n:'血紅素 Hb',u:'g/dL',lo:13,hi:17}, Hct:{n:'血容比 Hct',u:'%',lo:40,hi:52},
+ Plt:{n:'血小板 Plt',u:'×10³/µL',lo:150,hi:400}, Seg:{n:'噬中性球 Seg',u:'%',lo:40,hi:75},
+ Lymph:{n:'淋巴球 Lymph',u:'%',lo:15,hi:47}, Mono:{n:'單核球 Mono',u:'%',lo:4.4,hi:11.8},
+ Eos:{n:'嗜酸性球 Eos',u:'%',lo:0.4,hi:7.5}, Baso:{n:'嗜鹼性球 Baso',u:'%',lo:0.2,hi:1.7},
+ Band:{n:'帶狀核 Band',u:'%',lo:0,hi:4.2}, CRP:{n:'發炎指數 CRP',u:'mg/L',lo:0,hi:5},
+ Na:{n:'鈉 Na',u:'mmol/L',lo:135,hi:145}, K:{n:'鉀 K',u:'mmol/L',lo:3.5,hi:5.1},
+ CREA:{n:'肌酸酐 Creatinine',u:'mg/dL',lo:0.7,hi:1.3}, ALT:{n:'肝功能 ALT',u:'U/L',lo:0,hi:40},
+ AST:{n:'肝功能 AST',u:'U/L',lo:0,hi:40}, Albumin:{n:'白蛋白 Albumin',u:'g/dL',lo:3.5,hi:5},
+ Ca:{n:'鈣 Ca',u:'mg/dL',lo:8.6,hi:10}, BUN:{n:'尿素氮 BUN',u:'mg/dL',lo:8,hi:20},
+ LDH:{n:'乳酸脫氫酶 LDH',u:'U/L',lo:120,hi:250}, MCV:{n:'MCV',u:'fL',lo:82,hi:98},
+ MCH:{n:'MCH',u:'pg',lo:27,hi:34}, MCHC:{n:'MCHC',u:'g/dL',lo:32,hi:36}, RDW:{n:'RDW',u:'%',lo:12,hi:15}
+};
+const ORDER=['WBC','RBC','Hb','Plt','CRP','Seg','Albumin','Na','K','CREA','ALT','AST','Hct','BUN','Ca','LDH','Lymph','Mono','Eos','Baso','Band','MCV','MCH','MCHC','RDW'];
+/* 各種寫法 → 標準代號 */
+const ALIAS={'W.B.C.':'WBC','R.B.C.':'RBC','Platelet count':'Plt','Platelet cou':'Plt','Segment':'Seg',
+ 'Lym':'Lymph','Lym.':'Lymph','Lymph.':'Lymph','Mono.':'Mono','Eosin':'Eos','Eosin.':'Eos','Eos.':'Eos',
+ 'Baso.':'Baso','CRP/hs-CRP':'CRP','CRP/hs-':'CRP','hs-CRP':'CRP','Creatinine':'CREA','Crea':'CREA',
+ 'S-GPT(ALT)':'ALT','S-GPT':'ALT','S-GOT(AST)':'AST','S-GOT':'AST','Alb':'Albumin','LD':'LDH'};
+function canonKey(raw){let s=(raw||'').trim();if(ALIAS[s])return ALIAS[s];s=s.replace(/\.$/,'');if(ALIAS[s])return ALIAS[s];return s;}
+function nameOf(k){return CANON[k]?CANON[k].n:k;}
+function unitOf(k){return CANON[k]?CANON[k].u:'';}
+
+/* ---------- 資料存取（localStorage） ---------- */
+const LS='bloodChartTool.v1';
+let STORE={readings:{},meta:{},events:[]}; // readings[key]={ '115/07/02':12.2 }
+function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s){STORE=s;STORE.readings=STORE.readings||{};STORE.meta=STORE.meta||{};STORE.events=STORE.events||[];}}catch(e){}}
+function save(){localStorage.setItem(LS,JSON.stringify(STORE));}
+
+/* ---------- 日期工具（民國） ---------- */
+function parseGuo(s){s=(s||'').trim().replace(/-/g,'/');const p=s.split('/');if(p.length<3)return null;
+  let y=+p[0];if(isNaN(y))return null;if(y<1911)y+=1911;const d=new Date(y,+p[1]-1,+p[2]);return isNaN(d)?null:d;}
+function guoLabel(s){const p=s.split('/');return (+p[1])+'/'+(''+(+p[2])).padStart(2,'0');}
+function guoMonth(s){return +s.split('/')[1];}
+
+/* ---------- 數值抽取 ---------- */
+function numOf(raw){if(raw==null)return null;raw=(''+raw).trim();
+  const pr=raw.match(/\(([-\d.]+)\)/);if(pr)return parseFloat(pr[1]);
+  const m=raw.match(/-?\d+\.?\d*/);return m?parseFloat(m[0]):null;}
+
+/* ---------- 解析健保 HTML 檔 ---------- */
+function parseHealthHtml(text){
+  const doc=new DOMParser().parseFromString(text,'text/html');
+  let added=0;
+  doc.querySelectorAll('tr').forEach(tr=>{
+    const tds=tr.querySelectorAll(':scope > td');
+    if(tds.length<11)return;
+    const date=tds[3].textContent.trim();
+    if(!/^\d{3}\/\d{1,2}\/\d{1,2}$/.test(date))return;      // 檢驗日期欄
+    const order=tds[6].textContent.trim();
+    if(/尿/.test(order))return;                              // 排除尿液檢查（避免 WBC/RBC 混淆）
+    const item=tds[7].textContent.trim();
+    const val=numOf(tds[8].textContent);
+    if(val==null)return;
+    const key=canonKey(item);
+    // 參考值 [lo][hi]
+    const rref=tds[10]?tds[10].textContent.trim():'';
+    const rm=rref.match(/\[([\d.]+)\]\[([\d.]+)\]/);
+    STORE.readings[key]=STORE.readings[key]||{};
+    if(STORE.readings[key][date]==null){STORE.readings[key][date]=val;added++;}
+    if(!STORE.meta[key]){
+      const m={};
+      if(rm){m.lo=parseFloat(rm[1]);m.hi=parseFloat(rm[2]);}
+      else if(CANON[key]){m.lo=CANON[key].lo;m.hi=CANON[key].hi;}
+      m.unit=tds[9].textContent.trim()||unitOf(key);
+      STORE.meta[key]=m;
+    }
+  });
+  return added;
+}
+
+/* ---------- 加入單筆數據 ---------- */
+function addReading(date,key,val){
+  STORE.readings[key]=STORE.readings[key]||{};
+  STORE.readings[key][date]=val;
+  if(!STORE.meta[key]){const m={unit:unitOf(key)};if(CANON[key]){m.lo=CANON[key].lo;m.hi=CANON[key].hi;}STORE.meta[key]=m;}
+}
+
+/* ---------- 蒐集所有日期、排序、指定 x 座標（以最早日為 0，實際天數） ---------- */
+function buildAxis(){
+  const set=new Set();
+  Object.values(STORE.readings).forEach(o=>Object.keys(o).forEach(d=>set.add(d)));
+  STORE.events.forEach(e=>{if(e.date)set.add(e.date);});
+  const dates=[...set].filter(d=>parseGuo(d)).sort((a,b)=>parseGuo(a)-parseGuo(b));
+  if(!dates.length)return{dates:[],xOf:{},min:0,max:1,dataDates:[]};
+  const min=parseGuo(dates[0]);
+  const xOf={};dates.forEach(d=>xOf[d]=Math.round((parseGuo(d)-min)/86400000));
+  const dataDates=[...new Set(Object.values(STORE.readings).flatMap(o=>Object.keys(o)))]
+    .filter(d=>parseGuo(d)).sort((a,b)=>parseGuo(a)-parseGuo(b));
+  const xs=dataDates.map(d=>xOf[d]);
+  return{dates,xOf,min:Math.min(...xs)-1,max:Math.max(...xs)+1,dataDates};
+}
+
+/* ---------- 主渲染 ---------- */
+const charts={};
+const ptR=window.innerWidth<700?2.6:4;
+function keysInOrder(){
+  const ks=Object.keys(STORE.readings).filter(k=>Object.keys(STORE.readings[k]).length);
+  return ks.sort((a,b)=>{let ia=ORDER.indexOf(a),ib=ORDER.indexOf(b);if(ia<0)ia=999;if(ib<0)ib=999;return ia-ib||a.localeCompare(b);});
+}
+function render(){
+  Object.values(charts).forEach(c=>c.destroy());for(const k in charts)delete charts[k];
+  const cbox=document.getElementById('charts'),twrap=document.getElementById('tablesWrap');
+  cbox.innerHTML='';twrap.innerHTML='';
+  const ks=keysInOrder();
+  const ax=buildAxis();
+  updateStatus(ks,ax);
+  if(!ks.length){cbox.innerHTML='<div class="empty">還沒有資料。請上傳健保 HTML 檔，或用上方「手動新增數據」。</div>';return;}
+  // 事件註解（共用）
+  const evAnn={};
+  STORE.events.forEach((e,i)=>{const x=ax.xOf[e.date];if(x==null)return;
+    evAnn['ev'+i]={type:'line',xMin:x,xMax:x,borderColor:e.color,borderWidth:1.6,borderDash:[5,4],
+      label:{display:true,content:guoLabel(e.date)+' '+e.text,rotation:-90,position:i%2?'end':'start',
+        backgroundColor:'rgba(255,255,255,.88)',color:e.color,font:{size:10,weight:'bold'},padding:{x:3,y:2},borderRadius:4,borderColor:e.color,borderWidth:1}};});
+  // 每張圖
+  const palette=['#2e7dd1','#c0392b','#e74c3c','#8e44ad','#e67e22','#16a085','#b7950b','#2e86c1','#229954','#7d3c98','#ca6f1e','#cb4335','#5b8def','#d97706','#db2777','#0891b2','#6d28d9','#0e7490','#9d174d','#4d7c0f'];
+  ks.forEach((k,i)=>{
+    const meta=STORE.meta[k]||{};const color=palette[i%palette.length];
+    const refTxt=(meta.lo!=null&&meta.hi!=null)?(meta.lo+' – '+meta.hi+' '+(meta.unit||'')):'（無參考值）';
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`<div class="hd"><div><h3>${nameOf(k)}</h3>
+      <p class="ref">健康參考值 <span class="pill">${refTxt}</span></p></div>
+      <button class="mini" data-k="${k}">⬇ PNG</button></div><div class="chartbox"><canvas></canvas></div>`;
+    cbox.appendChild(card);
+    const pts=[],pc=[],pr=[];
+    ax.dataDates.forEach(d=>{const v=STORE.readings[k][d];if(v==null)return;
+      pts.push({x:ax.xOf[d],y:v});
+      const oor=(meta.lo!=null&&(v<meta.lo||v>meta.hi));pc.push(oor?'#f5821f':color);pr.push(ptR);});
+    const ann=Object.assign({},evAnn);
+    if(meta.lo!=null&&meta.hi!=null)ann.ref={type:'box',yMin:meta.lo,yMax:meta.hi,backgroundColor:'rgba(120,200,150,.13)',borderColor:'rgba(120,200,150,.45)',borderWidth:1};
+    charts[k]=new Chart(card.querySelector('canvas'),{type:'line',
+      data:{datasets:[{data:pts,borderColor:color,backgroundColor:color,pointBackgroundColor:pc,pointBorderColor:pc,pointRadius:pr,pointHoverRadius:ptR+3,borderWidth:2.4,tension:.25}]},
+      options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:2,parsing:false,
+        plugins:{legend:{display:false},annotation:{annotations:ann},
+          datalabels:{align:'top',anchor:'end',offset:3,clamp:true,color:color,font:{size:9,weight:'bold'},formatter:v=>v.y},
+          tooltip:{callbacks:{title:it=>labelForX(ax,it[0].parsed.x),label:it=>' '+k+'：'+it.parsed.y+' '+(meta.unit||'')}}},
+        scales:{x:{type:'linear',min:ax.min,max:ax.max,
+          afterBuildTicks:a=>{a.ticks=ax.dataDates.map(d=>({value:ax.xOf[d]}));},
+          ticks:{callback:v=>labelForX(ax,v),color:'#445463',font:{size:11},maxRotation:55,minRotation:45,autoSkip:false},
+          title:{display:true,text:'檢驗日期（月/日）',color:'#95a3b2',font:{size:11}},grid:{color:'#eef2f6'}},
+          y:{grace:'12%',ticks:{color:'#6b7c8f',font:{size:11}},grid:{color:'#eef2f6'},title:{display:true,text:meta.unit||'',color:'#95a3b2',font:{size:11}}}}},
+      plugins:[whiteBg]});
+  });
+  cbox.querySelectorAll('.mini').forEach(b=>b.onclick=()=>downloadOne(b.dataset.k));
+  buildTables(ks,ax);
+}
+function labelForX(ax,x){for(const d in ax.xOf)if(ax.xOf[d]===x)return guoLabel(d);return '';}
+
+/* ---------- 每月表格 ---------- */
+function buildTables(ks,ax){
+  const wrap=document.getElementById('tablesWrap');
+  const byMonth={};
+  ax.dataDates.forEach(d=>{const m=parseGuo(d).getFullYear()+'/'+guoMonth(d);(byMonth[m]=byMonth[m]||[]).push(d);});
+  const months=Object.keys(byMonth).sort((a,b)=>{const[ay,am]=a.split('/');const[by,bm]=b.split('/');return ay-by||am-bm;});
+  if(!months.length)return;
+  wrap.insertAdjacentHTML('beforeend','<div class="section-h">每月檢驗數值表</div>');
+  months.forEach(m=>{
+    const ds=byMonth[m];const gy=+m.split('/')[0]-1911;const mm=m.split('/')[1];
+    let h=`<div class="month-block"><h4>民國${gy}年 ${mm}月</h4><div class="tscroll"><table class="mtab"><thead><tr><th>指標 ＼ 日期</th>`;
+    ds.forEach(d=>h+='<th>'+guoLabel(d)+'</th>');h+='</tr></thead><tbody>';
+    ks.forEach(k=>{const meta=STORE.meta[k]||{};
+      const rt=(meta.lo!=null)?(meta.lo+'–'+meta.hi+' '+(meta.unit||'')):'';
+      h+=`<tr><td class="lab">${nameOf(k)}<br><small>${rt}</small></td>`;
+      ds.forEach(d=>{const v=STORE.readings[k][d];
+        if(v==null){h+='<td>–</td>';}
+        else{const oor=(meta.lo!=null&&(v<meta.lo||v>meta.hi));h+='<td'+(oor?' class="hi"':'')+'>'+v+'</td>';}});
+      h+='</tr>';});
+    h+='</tbody></table></div></div>';wrap.insertAdjacentHTML('beforeend',h);
+  });
+}
+
+/* ---------- PNG 匯出 ---------- */
+function exportCanvas(k){return new Promise(res=>{
+  const ch=charts[k],meta=STORE.meta[k]||{};const W=1100,H=560,pad=40;
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);
+  x.fillStyle='#1f2d3d';x.font='bold 28px "Microsoft JhengHei",sans-serif';x.textBaseline='top';x.fillText(nameOf(k),pad,26);
+  x.font='15px "Microsoft JhengHei",sans-serif';const rt=(meta.lo!=null)?('健康參考值　'+meta.lo+' – '+meta.hi+' '+(meta.unit||'')):'';
+  x.fillStyle='#2c7a4b';x.fillText(rt,pad,64);
+  const img=new Image();img.onload=()=>{x.drawImage(img,pad,100,W-pad*2,H-140);
+    x.fillStyle='#6b7c8f';x.font='12px "Microsoft JhengHei",sans-serif';
+    x.fillText('橘點＝超出參考範圍　·　綠帶＝參考值　·　虛線＝事件',pad,H-30);res(cv);};
+  img.src=ch.toBase64Image('image/png',1);});}
+async function downloadOne(k){const cv=await exportCanvas(k);const a=document.createElement('a');a.download=nameOf(k).replace(/[\\/:*?"<>|]/g,'_')+'.png';a.href=cv.toDataURL('image/png');a.click();}
+async function downloadAll(){for(const k of keysInOrder()){await downloadOne(k);await new Promise(r=>setTimeout(r,350));}}
+
+/* ---------- 事件清單 ---------- */
+function renderEvents(){const box=document.getElementById('eList');box.innerHTML='';
+  STORE.events.slice().sort((a,b)=>parseGuo(a.date)-parseGuo(b.date)).forEach(e=>{
+    const idx=STORE.events.indexOf(e);const s=document.createElement('span');s.className='chip';
+    s.innerHTML=`<span style="width:10px;height:10px;border-radius:50%;background:${e.color};display:inline-block"></span><b>${e.date}</b> ${e.text} <button data-i="${idx}">✕</button>`;
+    box.appendChild(s);});
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{STORE.events.splice(+b.dataset.i,1);save();renderEvents();render();});}
+
+/* ---------- 手動輸入指標下拉 ---------- */
+function fillKeySelect(){const sel=document.getElementById('mKey');sel.innerHTML='';
+  ORDER.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=nameOf(k);sel.appendChild(o);});
+  const oc=document.createElement('option');oc.value='__custom';oc.textContent='其他（自訂）';sel.appendChild(oc);}
+
+/* ---------- 狀態列 ---------- */
+function updateStatus(ks,ax){const n=ks.reduce((s,k)=>s+Object.keys(STORE.readings[k]).length,0);
+  document.getElementById('status').textContent=ks.length?`已載入 ${ks.length} 項指標、${ax.dataDates.length} 個檢驗日、共 ${n} 筆數值。`:'尚未載入任何資料。';}
+
+/* ---------- 事件綁定 ---------- */
+const drop=document.getElementById('drop'),fileIn=document.getElementById('file');
+drop.onclick=()=>fileIn.click();
+;['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hot');}));
+;['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hot');}));
+drop.addEventListener('drop',e=>handleFiles(e.dataTransfer.files));
+fileIn.onchange=()=>handleFiles(fileIn.files);
+function handleFiles(files){let done=0,total=0;const arr=[...files];if(!arr.length)return;
+  arr.forEach(f=>{const r=new FileReader();r.onload=()=>{try{total+=parseHealthHtml(r.result);}catch(e){console.error(e);}
+    if(++done===arr.length){save();render();alert('完成，新增 '+total+' 筆數值。');}};r.readAsText(f,'UTF-8');});}
+
+document.getElementById('mKey').onchange=e=>{document.getElementById('mCustomWrap').style.display=e.target.value==='__custom'?'flex':'none';};
+document.getElementById('mAdd').onclick=()=>{
+  const d=document.getElementById('mDate').value.trim();if(!parseGuo(d)){alert('請輸入正確的民國日期，如 115/07/02');return;}
+  let k=document.getElementById('mKey').value;if(k==='__custom'){k=document.getElementById('mCustom').value.trim();if(!k){alert('請輸入自訂指標名稱');return;}k=canonKey(k);}
+  const v=parseFloat(document.getElementById('mVal').value);if(isNaN(v)){alert('請輸入數值');return;}
+  addReading(d,k,v);save();render();document.getElementById('mVal').value='';};
+
+document.getElementById('eAdd').onclick=()=>{
+  const d=document.getElementById('eDate').value.trim();if(!parseGuo(d)){alert('請輸入正確的民國日期');return;}
+  const t=document.getElementById('eText').value.trim();if(!t){alert('請輸入事件描述');return;}
+  STORE.events.push({date:d,text:t,color:document.getElementById('eColor').value});save();renderEvents();render();
+  document.getElementById('eText').value='';};
+
+document.getElementById('dlAll').onclick=downloadAll;
+document.getElementById('expJson').onclick=()=>{const a=document.createElement('a');a.download='血液數值資料.json';a.href=URL.createObjectURL(new Blob([JSON.stringify(STORE,null,2)],{type:'application/json'}));a.click();};
+document.getElementById('impBtn').onclick=()=>document.getElementById('impJson').click();
+document.getElementById('impJson').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);STORE=Object.assign({readings:{},meta:{},events:[]},s);save();renderEvents();render();alert('匯入完成');}catch(err){alert('檔案格式錯誤');}};r.readAsText(f);};
+document.getElementById('clearAll').onclick=()=>{if(confirm('確定清除全部資料？此動作無法復原（建議先匯出備份）。')){STORE={readings:{},meta:{},events:[]};save();renderEvents();render();}};
+document.getElementById('loadDemo').onclick=()=>{
+  STORE={readings:{
+    Plt:{'115/06/16':34,'115/06/18':41,'115/06/20':26,'115/06/23':44,'115/06/25':22,'115/06/27':16,'115/06/29':19,'115/07/02':21},
+    Hb:{'115/06/16':10.6,'115/06/18':9.0,'115/06/20':9.5,'115/06/23':9.7,'115/06/25':8.8,'115/06/27':8.0,'115/06/29':8.1,'115/07/02':9.6},
+    WBC:{'115/06/16':19.06,'115/06/18':15.89,'115/06/20':12.3,'115/06/23':13.1,'115/06/25':13.57,'115/06/27':8.77,'115/06/29':9.39,'115/07/02':12.2},
+    CRP:{'115/06/16':98.6,'115/06/20':67.3,'115/06/23':73.2,'115/06/27':55.3,'115/07/02':13.3}},
+    meta:{},events:[{date:'115/06/22',text:'打一包血小板',color:'#e0457b'},{date:'115/06/25',text:'打一包血小板',color:'#e0457b'}]};
+  ['Plt','Hb','WBC','CRP'].forEach(k=>{STORE.meta[k]={unit:CANON[k].u,lo:CANON[k].lo,hi:CANON[k].hi};});
+  save();renderEvents();render();};
+
+/* ---------- 啟動 ---------- */
+load();fillKeySelect();renderEvents();render();
+</script>
+</body>
+</html>
