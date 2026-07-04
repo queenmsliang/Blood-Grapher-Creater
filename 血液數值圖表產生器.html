@@ -140,6 +140,7 @@
   <div class="panel">
     <h2>顯示區間</h2>
     <div class="row">
+      <div class="fld"><label>選年份</label><select id="yearSel"></select></div>
       <div class="fld"><label>起（民國）</label><input id="rFrom" placeholder="115/04/01" size="12"></div>
       <div class="fld"><label>迄（民國）</label><input id="rTo" placeholder="115/07/02" size="12"></div>
       <button class="btn" id="rApply">套用</button>
@@ -350,6 +351,15 @@ function toGuo(d){return (d.getFullYear()-1911)+'/'+(d.getMonth()+1)+'/'+d.getDa
 function allDatesSorted(){const s=new Set();Object.values(STORE.readings).forEach(o=>Object.keys(o).forEach(d=>s.add(d)));return [...s].filter(d=>parseGuo(d)).sort((a,b)=>parseGuo(a)-parseGuo(b));}
 function updateRangeInfo(ax){const el=document.getElementById('rInfo');if(!el)return;
   el.textContent=(FILTER.from||FILTER.to)?('目前顯示：'+(FILTER.from||'最早')+' ～ '+(FILTER.to||'最新')+'（'+ax.dataDates.length+' 個檢驗日）'):('顯示全部（'+ax.dataDates.length+' 個檢驗日）');}
+function populateYears(){
+  const sel=document.getElementById('yearSel');if(!sel)return;
+  const yrs=[...new Set(allDatesSorted().map(d=>d.split('/')[0]))].sort();
+  sel.innerHTML='<option value="">全部年份</option>'+yrs.map(y=>'<option value="'+y+'">民國'+(+y-1911)+'年（西元'+(+y+1911)+'）</option>').join('');
+  let selVal='';
+  if(FILTER.from&&FILTER.to){const f=FILTER.from.split('/'),t=FILTER.to.split('/');
+    if(f[0]===t[0]&&f[1]=='1'&&f[2]=='1'&&t[1]=='12'&&t[2]=='31')selVal=f[0];}
+  sel.value=selVal;
+}
 function keysInOrder(){
   const hid=STORE.hidden||[], ord=STORE.order||[];
   const ks=Object.keys(STORE.readings).filter(k=>Object.keys(STORE.readings[k]).length && !hid.includes(k));
@@ -380,7 +390,7 @@ function render(){
   Object.values(charts).forEach(c=>c.destroy());for(const k in charts)delete charts[k];
   const cbox=document.getElementById('charts'),twrap=document.getElementById('tablesWrap');
   cbox.innerHTML='';twrap.innerHTML='';
-  renderPicker();
+  renderPicker();populateYears();
   const ks=keysInOrder();
   const ax=buildAxis();
   const R=(n=>n>120?1.3:n>60?1.8:n>36?2.3:n>18?2.8:(window.innerWidth<700?2.4:3.4))(ax.dataDates.length);
@@ -622,6 +632,10 @@ document.getElementById('rAll').onclick=()=>{FILTER={from:null,to:null};document
 document.getElementById('r1m').onclick=()=>preset(1);
 document.getElementById('r3m').onclick=()=>preset(3);
 document.getElementById('r6m').onclick=()=>preset(6);
+document.getElementById('yearSel').onchange=function(){
+  if(!this.value){FILTER={from:null,to:null};document.getElementById('rFrom').value='';document.getElementById('rTo').value='';}
+  else{FILTER.from=this.value+'/1/1';FILTER.to=this.value+'/12/31';document.getElementById('rFrom').value=FILTER.from;document.getElementById('rTo').value=FILTER.to;}
+  render();};
 document.getElementById('clearView').onclick=function(){
   const hide=this.dataset.h!=='1';this.dataset.h=hide?'1':'0';
   document.getElementById('charts').style.display=hide?'none':'';
