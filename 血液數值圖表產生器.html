@@ -320,13 +320,16 @@ function pad2(n){return (''+n).padStart(2,'0');}
 function westernToGuo(v){if(!v)return null;const p=v.split('-');if(p.length<3)return null;return (+p[0]-1911)+'/'+(+p[1])+'/'+(+p[2]);}
 function guoToInput(g){const d=parseGuo(g);return d?(d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())):'';}
 function hexA(h,a){h=(h||'#888').replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
+let tipHideTimer=null;
 function fmtNote(t){return (t||'').replace(/(疾病分類|處置名稱|處置資料|主診斷|次診斷\d*|主處置|次處置\d*|項目|病史)/g,'\n$1').replace(/\n{2,}/g,'\n').replace(/^\n/,'').trim();}
-function showTip(text,ev){if(!text)return;let t=document.getElementById('annTip');
-  if(!t){t=document.createElement('div');t.id='annTip';t.style.cssText='position:fixed;z-index:9999;max-width:340px;background:#1f2d3d;color:#fff;font-size:12px;line-height:1.55;padding:9px 11px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;white-space:pre-wrap;text-align:left;max-height:70vh;overflow:auto;';document.body.appendChild(t);}
-  t.textContent=fmtNote(text);t.style.display='block';
+function showTip(text,ev){if(!text)return;clearTimeout(tipHideTimer);let t=document.getElementById('annTip');
+  if(!t){t=document.createElement('div');t.id='annTip';t.style.cssText='position:fixed;z-index:9999;max-width:340px;background:#1f2d3d;color:#fff;font-size:12px;line-height:1.55;padding:9px 11px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:pre-wrap;text-align:left;max-height:70vh;overflow:auto;';
+    t.onmouseenter=()=>clearTimeout(tipHideTimer);t.onmouseleave=hideTip;document.body.appendChild(t);}
+  t.style.pointerEvents='auto';t.textContent=fmtNote(text);t.style.display='block';
   const x=ev&&ev.native?ev.native.clientX:(ev?ev.x:0),y=ev&&ev.native?ev.native.clientY:(ev?ev.y:0);
   t.style.left=(x+14)+'px';t.style.top=(y+14)+'px';}
-function hideTip(){const t=document.getElementById('annTip');if(t)t.style.display='none';}
+function hideTip(){clearTimeout(tipHideTimer);const t=document.getElementById('annTip');if(t)t.style.display='none';}
+function hideTipSoon(){clearTimeout(tipHideTimer);tipHideTimer=setTimeout(hideTip,350);}
 
 /* ---------- 數值抽取 ---------- */
 function numOf(raw){if(raw==null)return null;raw=(''+raw).trim();
@@ -455,7 +458,7 @@ function render(){
   const evAnn={};
   if(STORE.showEvents!==false) STORE.events.forEach((e,i)=>{const x=ax.xOf[e.date];if(x==null)return;
     evAnn['ev'+i]={type:'line',xMin:x,xMax:x,borderColor:e.color,borderWidth:1.6,borderDash:[5,4],
-      enter:(c,ev)=>showTip(e.note,ev),leave:hideTip,
+      enter:(c,ev)=>showTip(e.note,ev),leave:hideTipSoon,
       label:{display:true,content:guoLabel(e.date)+' '+e.text,rotation:-90,position:i%2?'end':'start',
         backgroundColor:'rgba(255,255,255,.88)',color:e.color,font:{size:10,weight:'bold'},padding:{x:3,y:2},borderRadius:4,borderColor:e.color,borderWidth:1}};});
   // 每張圖
@@ -463,7 +466,7 @@ function render(){
   if(STORE.showStays!==false) (STORE.stays||[]).forEach((s,i)=>{const x1=ax.xOf[s.from],x2=ax.xOf[s.to];if(x1==null||x2==null)return;
     stayAnn['stay'+i]={type:'box',xMin:Math.min(x1,x2),xMax:Math.max(x1,x2),drawTime:'beforeDatasetsDraw',
       backgroundColor:hexA(s.color,0.10),borderColor:hexA(s.color,0.35),borderWidth:1,
-      enter:(c,ev)=>showTip(s.note,ev),leave:hideTip,
+      enter:(c,ev)=>showTip(s.note,ev),leave:hideTipSoon,
       label:{display:true,content:(s.text||'住院'),rotation:-90,position:{x:'center',y:'center'},color:s.color,font:{size:10,weight:'bold'},backgroundColor:'rgba(255,255,255,.85)',padding:{x:3,y:2},borderRadius:4,borderColor:s.color,borderWidth:1}};});
   const palette=['#2e7dd1','#c0392b','#e74c3c','#8e44ad','#e67e22','#16a085','#b7950b','#2e86c1','#229954','#7d3c98','#ca6f1e','#cb4335','#5b8def','#d97706','#db2777','#0891b2','#6d28d9','#0e7490','#9d174d','#4d7c0f'];
   ks.forEach((k,i)=>{
