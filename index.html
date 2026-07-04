@@ -196,7 +196,7 @@ const CANON={
  Plt:{n:'血小板 Plt',u:'×10³/µL',lo:150,hi:400}, Seg:{n:'噬中性球 Seg',u:'%',lo:40,hi:75},
  Lymph:{n:'淋巴球 Lymph',u:'%',lo:15,hi:47}, Mono:{n:'單核球 Mono',u:'%',lo:4.4,hi:11.8},
  Eos:{n:'嗜酸性球 Eos',u:'%',lo:0.4,hi:7.5}, Baso:{n:'嗜鹼性球 Baso',u:'%',lo:0.2,hi:1.7},
- Band:{n:'帶狀核 Band',u:'%',lo:0,hi:4.2}, CRP:{n:'發炎指數 CRP',u:'mg/L',lo:0,hi:5},
+ Band:{n:'帶狀核 Band',u:'%',lo:0,hi:4.2}, Blast:{n:'芽細胞 Blast',u:'%',lo:0,hi:0}, CMV:{n:'CMV病毒量',u:'IU/mL'}, CRP:{n:'發炎指數 CRP',u:'mg/L',lo:0,hi:5},
  Na:{n:'鈉 Na',u:'mmol/L',lo:135,hi:145}, K:{n:'鉀 K',u:'mmol/L',lo:3.5,hi:5.1},
  CREA:{n:'肌酸酐 Creatinine',u:'mg/dL',lo:0.7,hi:1.3}, ALT:{n:'肝功能 ALT',u:'U/L',lo:0,hi:40},
  AST:{n:'肝功能 AST',u:'U/L',lo:0,hi:40}, Albumin:{n:'白蛋白 Albumin',u:'g/dL',lo:3.5,hi:5},
@@ -204,7 +204,7 @@ const CANON={
  LDH:{n:'乳酸脫氫酶 LDH',u:'U/L',lo:120,hi:250}, MCV:{n:'MCV',u:'fL',lo:82,hi:98},
  MCH:{n:'MCH',u:'pg',lo:27,hi:34}, MCHC:{n:'MCHC',u:'g/dL',lo:32,hi:36}, RDW:{n:'RDW',u:'%',lo:12,hi:15}
 };
-const ORDER=['WBC','RBC','Hb','Plt','CRP','Seg','Albumin','Na','K','CREA','ALT','AST','Hct','BUN','Ca','LDH','Lymph','Mono','Eos','Baso','Band','MCV','MCH','MCHC','RDW'];
+const ORDER=['WBC','RBC','Hb','Plt','Hct','CRP','Seg','Blast','CMV','Albumin','Na','K','CREA','ALT','AST','BUN','Ca','LDH','Lymph','Mono','Eos','Baso','Band','MCV','MCH','MCHC','RDW'];
 const ALIAS={'W.B.C.':'WBC','R.B.C.':'RBC','Platelet count':'Plt','Platelet cou':'Plt','Segment':'Seg',
  'Lym':'Lymph','Lym.':'Lymph','Lymph.':'Lymph','Mono.':'Mono','Eosin':'Eos','Eosin.':'Eos','Eos.':'Eos',
  'Baso.':'Baso','CRP/hs-CRP':'CRP','CRP/hs-':'CRP','hs-CRP':'CRP','Creatinine':'CREA','Crea':'CREA',
@@ -222,7 +222,8 @@ const NORMALIAS={}, ZH_TERMS=[];
   Mono:['Mono','Monocyte','Monocytes','單核球'],
   Eos:['Eos','Eosin','Eosinophil','Eosinophils','嗜酸性球'],
   Baso:['Baso','Basophil','Basophils','嗜鹼性球'],
-  Band:['Band','Bands','帶狀核','帶狀核球'],
+  Band:['Band','Bands','帶狀核','帶狀核球'], Blast:['Blast','Blasts','芽細胞','母細胞','芽母細胞'],
+  CMV:['CMV','CMV viral load','CMV-DNA','CMV PCR','CMV DNA','巨細胞病毒','巨細胞病毒定量'],
   CRP:['CRP','hsCRP','CRPhsCRP','CReactiveProtein','C反應蛋白','發炎指數'],
   Na:['Na','Sodium','鈉'], K:['K','Potassium','鉀'], Cl:['Cl','Chloride','氯'], Ca:['Ca','Calcium','鈣'],
   CREA:['CREA','CRE','Creatinine','肌酸酐'], BUN:['BUN','UreaNitrogen','尿素氮'],
@@ -244,6 +245,7 @@ function canonKey(raw){
   if(tail&&NORMALIAS[nrm(tail[0])])return NORMALIAS[nrm(tail[0])];
   // 純中文項目名：掃描中文別名（長詞優先）
   for(const [term,key] of ZH_TERMS){if(s.includes(term))return key;}
+  if(/CMV/i.test(s)||/巨細胞病毒/.test(s))return 'CMV';   // 各種 CMV 病毒量寫法
   return s2;
 }
 const DEFS={
@@ -258,6 +260,8 @@ const DEFS={
  Eos:'嗜酸性球：白血球的一種，與過敏及寄生蟲反應有關。',
  Baso:'嗜鹼性球：白血球中數量最少的一種，參與過敏與發炎反應。',
  Band:'帶狀核球：未成熟的嗜中性球。升高常代表急性感染。',
+ Blast:'芽細胞（母細胞）：骨髓中未成熟的血球。周邊血液出現常見於白血病或骨髓分化不良，數值越低越好。',
+ CMV:'CMV病毒量（巨細胞病毒）：反映 CMV 感染活性，免疫力低下者需監測，數值越低越好。',
  CRP:'發炎指數(C反應蛋白)：發炎或感染時上升，用來追蹤發炎程度。',
  Na:'鈉：主要電解質，維持體液平衡與神經肌肉功能。',
  K:'鉀：電解質，影響心臟與肌肉功能。過高或過低都可能危險。',
@@ -299,7 +303,9 @@ function unitOf(k){return CANON[k]?CANON[k].u:'';}
 const LS='bloodChartTool.v1';
 const LSB=LS+'.mybak';   // 載入範例前備份使用者原本資料
 let STORE={readings:{},meta:{},events:[]};
-function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s){STORE=s;STORE.readings=STORE.readings||{};STORE.meta=STORE.meta||{};STORE.events=STORE.events||[];STORE.hidden=STORE.hidden||[];STORE.stays=STORE.stays||[];}}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s){STORE=s;STORE.readings=STORE.readings||{};STORE.meta=STORE.meta||{};STORE.events=STORE.events||[];STORE.hidden=STORE.hidden||[];STORE.stays=STORE.stays||[];
+  Object.keys(STORE.readings).forEach(k=>{const c=canonKey(k);if(c&&c!==k){STORE.readings[c]=Object.assign({},STORE.readings[c],STORE.readings[k]);delete STORE.readings[k];if(STORE.meta[k]){STORE.meta[c]=STORE.meta[c]||STORE.meta[k];delete STORE.meta[k];}}});
+  }}catch(e){}}
 function save(){localStorage.setItem(LS,JSON.stringify(STORE));}
 
 function parseGuo(s){s=(s||'').trim().replace(/-/g,'/');const p=s.split('/');if(p.length<3)return null;
@@ -310,9 +316,10 @@ function pad2(n){return (''+n).padStart(2,'0');}
 function westernToGuo(v){if(!v)return null;const p=v.split('-');if(p.length<3)return null;return (+p[0]-1911)+'/'+(+p[1])+'/'+(+p[2]);}
 function guoToInput(g){const d=parseGuo(g);return d?(d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())):'';}
 function hexA(h,a){h=(h||'#888').replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
+function fmtNote(t){return (t||'').replace(/(疾病分類|處置名稱|處置資料|主診斷|次診斷\d*|主處置|次處置\d*|項目|病史)/g,'\n$1').replace(/\n{2,}/g,'\n').replace(/^\n/,'').trim();}
 function showTip(text,ev){if(!text)return;let t=document.getElementById('annTip');
-  if(!t){t=document.createElement('div');t.id='annTip';t.style.cssText='position:fixed;z-index:9999;max-width:260px;background:#1f2d3d;color:#fff;font-size:12px;line-height:1.5;padding:8px 10px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;';document.body.appendChild(t);}
-  t.textContent=text;t.style.display='block';
+  if(!t){t=document.createElement('div');t.id='annTip';t.style.cssText='position:fixed;z-index:9999;max-width:340px;background:#1f2d3d;color:#fff;font-size:12px;line-height:1.55;padding:9px 11px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;white-space:pre-wrap;text-align:left;max-height:70vh;overflow:auto;';document.body.appendChild(t);}
+  t.textContent=fmtNote(text);t.style.display='block';
   const x=ev&&ev.native?ev.native.clientX:(ev?ev.x:0),y=ev&&ev.native?ev.native.clientY:(ev?ev.y:0);
   t.style.left=(x+14)+'px';t.style.top=(y+14)+'px';}
 function hideTip(){const t=document.getElementById('annTip');if(t)t.style.display='none';}
