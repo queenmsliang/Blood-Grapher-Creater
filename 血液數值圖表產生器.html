@@ -568,7 +568,10 @@ function buildResultHtml(){
     const img=charts[k].toBase64Image('image/png');
     const refTxt=(meta.lo!=null)?(meta.lo+' – '+meta.hi+' '+(meta.unit||'')):'（無參考值）';
     body+='<div class="c"><h3>'+nameOf(k)+'</h3><p class="r">健康參考值 '+refTxt+'</p><img src="'+img+'"></div>';});
-  let ev='';STORE.events.slice().sort((a,b)=>parseGuo(a.date)-parseGuo(b.date)).forEach(e=>{ev+='<li><span style="color:'+e.color+'">●</span> '+e.date+'　'+e.text+'</li>';});
+  const esc=s=>(''+(s||'')).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const noteHtml=n=>n?('<div class="note">'+esc(fmtNote(n)).replace(/\n/g,'<br>')+'</div>'):'';
+  let ev='';STORE.events.slice().sort((a,b)=>parseGuo(a.date)-parseGuo(b.date)).forEach(e=>{ev+='<li><span style="color:'+e.color+'">●</span> <b>'+e.date+'</b> '+esc(e.text)+noteHtml(e.note)+'</li>';});
+  let stayList='';(STORE.stays||[]).slice().sort((a,b)=>parseGuo(a.from)-parseGuo(b.from)).forEach(s=>{stayList+='<li><span style="color:'+s.color+'">▬</span> <b>'+s.from+'～'+s.to+'</b> '+esc(s.text||'住院')+noteHtml(s.note)+'</li>';});
   const rangeTxt=(FILTER.from||FILTER.to)?('　顯示區間：'+(FILTER.from||'最早')+' ～ '+(FILTER.to||'最新')):'';
   const html='<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>血液數值圖表結果</title><style>'
     +'body{font-family:"Microsoft JhengHei","PingFang TC",sans-serif;max-width:1000px;margin:0 auto;padding:20px;color:#1f2d3d;background:#f4f7fa}'
@@ -578,9 +581,11 @@ function buildResultHtml(){
     +'h2{border-left:5px solid #9bcdb0;padding-left:10px;margin-top:26px}h4{margin:14px 0 6px}'
     +'table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{border:1px solid #e3e9f0;padding:6px 9px;text-align:center;white-space:nowrap}'
     +'th{background:#eef4f9}td.lab{text-align:left;font-weight:600}td.hi{color:#f5821f;font-weight:700}'
-    +'.ev ul{padding-left:4px}.ev li{list-style:none;line-height:1.8}</style></head><body>'
+    +'.ev ul{padding-left:4px}.ev li{list-style:none;line-height:1.8;margin-bottom:4px}'
+    +'.note{margin:3px 0 8px 20px;color:#334;font-size:12px;white-space:pre-wrap;background:#f4f7fa;border-left:3px solid #cdd8e3;padding:6px 10px;border-radius:4px}</style></head><body>'
     +'<h1>血液數值圖表結果</h1><p class="sub">匯出日期 '+toGuo(new Date())+rangeTxt+'</p>'
     +(ev?('<div class="ev"><h2>關鍵事件</h2><ul>'+ev+'</ul></div>'):'')
+    +(stayList?('<div class="ev"><h2>住院期間</h2><ul>'+stayList+'</ul></div>'):'')
     +body+tablesHtmlString(ks,ax)
     +'<p class="sub">由「血液數值圖表產生器」匯出　·　僅供照護與就醫溝通參考，請以醫師判讀為準。</p></body></html>';
   return html;
