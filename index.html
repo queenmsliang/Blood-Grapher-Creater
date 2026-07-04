@@ -28,7 +28,7 @@
   .row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
   .fld{display:flex;flex-direction:column;gap:4px;}
   .fld label{font-size:12px;color:var(--sub);}
-  input,select{font-family:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;}
+  input,select,textarea{font-family:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;}
   input[type=color]{padding:2px;width:44px;height:36px;}
   .btn{cursor:pointer;border:1px solid var(--goodln);background:var(--good);color:var(--accent);
     border-radius:22px;padding:8px 18px;font-size:14px;font-weight:600;font-family:inherit;transition:.15s;}
@@ -115,7 +115,7 @@
     <div class="row">
       <div class="fld"><label>日期</label><input id="eDate" type="date"></div>
       <div class="fld"><label>事件描述</label><input id="eText" placeholder="打一包血小板" size="16"></div>
-      <div class="fld"><label>註解（滑鼠移到事件顯示）</label><input id="eNote" placeholder="例如：輸注後血小板回升" size="20"></div>
+      <div class="fld"><label>註解（滑鼠移到事件顯示）</label><textarea id="eNote" placeholder="例如：輸注後血小板回升" rows="1" style="resize:both;min-width:200px;min-height:34px;height:34px"></textarea></div>
       <div class="fld"><label>顏色</label><input id="eColor" type="color" value="#e0457b"></div>
       <button class="btn" id="eAdd">新增事件</button>
     </div>
@@ -128,7 +128,7 @@
       <div class="fld"><label>入院日期</label><input id="sFrom" type="date"></div>
       <div class="fld"><label>出院日期</label><input id="sTo" type="date"></div>
       <div class="fld"><label>說明</label><input id="sText" placeholder="住院" size="10"></div>
-      <div class="fld"><label>註解（滑鼠移到區塊顯示）</label><input id="sNote" placeholder="例如：因發燒住院治療" size="20"></div>
+      <div class="fld"><label>註解（滑鼠移到區塊顯示）</label><textarea id="sNote" placeholder="例如：因發燒住院治療" rows="1" style="resize:both;min-width:200px;min-height:34px;height:34px"></textarea></div>
       <div class="fld"><label>顏色</label><input id="sColor" type="color" value="#7aa7d8"></div>
       <button class="btn" id="sAdd">新增住院</button>
     </div>
