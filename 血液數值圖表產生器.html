@@ -354,7 +354,7 @@ function updateRangeInfo(ax){const el=document.getElementById('rInfo');if(!el)re
 function populateYears(){
   const sel=document.getElementById('yearSel');if(!sel)return;
   const yrs=[...new Set(allDatesSorted().map(d=>d.split('/')[0]))].sort();
-  sel.innerHTML='<option value="">全部年份</option>'+yrs.map(y=>'<option value="'+y+'">民國'+(+y-1911)+'年（西元'+(+y+1911)+'）</option>').join('');
+  sel.innerHTML='<option value="">全部年份</option>'+yrs.map(y=>'<option value="'+y+'">民國'+y+'年（西元'+(+y+1911)+'）</option>').join('');
   let selVal='';
   if(FILTER.from&&FILTER.to){const f=FILTER.from.split('/'),t=FILTER.to.split('/');
     if(f[0]===t[0]&&f[1]=='1'&&f[2]=='1'&&t[1]=='12'&&t[2]=='31')selVal=f[0];}
