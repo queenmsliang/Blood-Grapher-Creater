@@ -149,6 +149,8 @@
     <button class="btn plain" id="expJson">匯出資料 (JSON)</button>
     <button class="btn plain" id="impBtn">匯入資料 (JSON)</button>
     <input id="impJson" type="file" accept=".json" hidden>
+    <button class="btn plain" id="copyJson">📋 複製資料</button>
+    <button class="btn plain" id="pasteJson">📥 貼上匯入</button>
     <button class="btn plain" id="loadDemo">載入範例</button>
     <button class="btn plain" id="restoreMine" style="display:none">↩ 還原我的資料</button>
     <button class="btn plain" id="clearView">清空畫面</button>
@@ -680,6 +682,8 @@ document.getElementById('eAdd').onclick=()=>{
 document.getElementById('dlAll').onclick=downloadAll;
 document.getElementById('dlHtml').onclick=downloadResultHtml;
 document.getElementById('shareBtn').onclick=shareResult;
+document.getElementById('copyJson').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(STORE));alert('資料已複製到剪貼簿。\n可貼到 LINE／記事本傳給對方，對方按「📥 貼上匯入」即可載入。');}catch(e){alert('複製失敗，請改用「匯出資料 (JSON)」。');}};
+document.getElementById('pasteJson').onclick=async()=>{let t='';try{t=await navigator.clipboard.readText();}catch(e){}if(!t)t=prompt('請貼上資料 JSON：')||'';if(!t.trim())return;try{const s=JSON.parse(t);STORE=Object.assign({readings:{},meta:{},events:[],hidden:[],stays:[]},s);save();renderEvents();renderStays();render();alert('匯入完成');}catch(err){alert('資料格式錯誤，請確認貼上的是完整的 JSON。');}};
 document.getElementById('pickAll').onclick=()=>{STORE.hidden=[];save();render();};
 document.getElementById('pickNone').onclick=()=>{STORE.hidden=Object.keys(STORE.readings).filter(k=>Object.keys(STORE.readings[k]).length);save();render();};
 document.getElementById('resetOrder').onclick=()=>{STORE.order=null;save();render();};
