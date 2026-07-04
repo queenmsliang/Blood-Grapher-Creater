@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{--bg:#f4f7fa;--card:#fff;--ink:#1f2d3d;--sub:#6b7c8f;--line:#e3e9f0;--good:#e8f6ee;--goodln:#9bcdb0;--accent:#2c7a4b;}
   *{box-sizing:border-box;}
@@ -84,6 +86,16 @@
       <input id="file" type="file" accept=".html,.htm" multiple hidden>
     </div>
     <div class="status" id="status">尚未載入任何資料。</div>
+  </div>
+
+  <div class="panel">
+    <h2>①-2 上傳 PDF／截圖自動辨識（實驗性）</h2>
+    <div id="drop2">把 PDF 或截圖（PNG／JPG）拖到這裡，或<u>點此選擇</u>（可多選）
+      <input id="file2" type="file" accept=".pdf,image/*" multiple hidden>
+    </div>
+    <div class="status" id="ocrStatus">辨識結果會出現在下方文字框，請務必核對後再加入。首次辨識會下載元件，請稍候。</div>
+    <textarea id="ocrText" style="width:100%;min-height:110px;margin-top:10px;font-family:monospace;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px" placeholder="辨識出的文字會顯示在這裡，可自行修改。每行格式例如：115/07/02 CRP 13.3"></textarea>
+    <div style="margin-top:8px"><button class="btn" id="ocrParse">解析並加入圖表</button> <button class="btn plain" id="ocrClear">清空文字</button> <span style="font-size:12px;color:var(--sub)">（OCR 可能有誤，加入前請核對數值；中文項目名可能需手動輸入）</span></div>
   </div>
 
   <div class="panel">
@@ -169,7 +181,43 @@ const ALIAS={'W.B.C.':'WBC','R.B.C.':'RBC','Platelet count':'Plt','Platelet cou'
  'Lym':'Lymph','Lym.':'Lymph','Lymph.':'Lymph','Mono.':'Mono','Eosin':'Eos','Eosin.':'Eos','Eos.':'Eos',
  'Baso.':'Baso','CRP/hs-CRP':'CRP','CRP/hs-':'CRP','hs-CRP':'CRP','Creatinine':'CREA','Crea':'CREA',
  'S-GPT(ALT)':'ALT','S-GPT':'ALT','S-GOT(AST)':'AST','S-GOT':'AST','Alb':'Albumin','LD':'LDH'};
-function canonKey(raw){let s=(raw||'').trim();if(ALIAS[s])return ALIAS[s];s=s.replace(/\.$/,'');if(ALIAS[s])return ALIAS[s];return s;}
+// 各醫院不同寫法 → 標準代號（不分大小寫、忽略標點；含中英文全名）
+const NORMALIAS={}, ZH_TERMS=[];
+(function(){const T={
+  WBC:['WBC','WhiteBloodCell','WhiteBloodCells','Leukocyte','Leukocytes','WBCCount','白血球','白血球數'],
+  RBC:['RBC','RedBloodCell','RedBloodCells','Erythrocyte','RBCCount','紅血球','紅血球數'],
+  Hb:['Hb','HGB','Haemoglobin','Hemoglobin','血色素','血紅素','血紅蛋白'],
+  Hct:['Hct','Hematocrit','Haematocrit','血比容','血容比','血球容積比'],
+  Plt:['Plt','PLT','Platelet','PlateletCount','Thrombocyte','血小板','血小板數'],
+  Seg:['Seg','Segment','Segmented','Neutrophil','Neutrophils','Neut','NeutrophilSeg','嗜中性球','噬中性球','中性球'],
+  Lymph:['Lymph','Lym','Lymphocyte','Lymphocytes','淋巴球'],
+  Mono:['Mono','Monocyte','Monocytes','單核球'],
+  Eos:['Eos','Eosin','Eosinophil','Eosinophils','嗜酸性球'],
+  Baso:['Baso','Basophil','Basophils','嗜鹼性球'],
+  Band:['Band','Bands','帶狀核','帶狀核球'],
+  CRP:['CRP','hsCRP','CRPhsCRP','CReactiveProtein','C反應蛋白','發炎指數'],
+  Na:['Na','Sodium','鈉'], K:['K','Potassium','鉀'], Cl:['Cl','Chloride','氯'], Ca:['Ca','Calcium','鈣'],
+  CREA:['CREA','CRE','Creatinine','肌酸酐'], BUN:['BUN','UreaNitrogen','尿素氮'],
+  ALT:['ALT','SGPT','GPT','SGPTALT'], AST:['AST','SGOT','GOT','SGOTAST'],
+  Albumin:['Albumin','Alb','白蛋白'], LDH:['LDH','LD','乳酸脫氫酶'], eGFR:['eGFR','GFR','腎絲球過濾率']
+ };
+ for(const k in T)T[k].forEach(v=>{NORMALIAS[v.toUpperCase().replace(/[\s.\-_()\/]/g,'')]=k;
+   if(/[一-鿿]/.test(v))ZH_TERMS.push([v,k]);});
+ ZH_TERMS.sort((a,b)=>b[0].length-a[0].length);
+})();
+function nrm(x){return x.toUpperCase().replace(/[\s.\-_()\/]/g,'');}
+function canonKey(raw){
+  let s=(raw||'').trim();if(!s)return s;
+  if(ALIAS[s])return ALIAS[s];
+  const s2=s.replace(/\.$/,'');if(ALIAS[s2])return ALIAS[s2];
+  if(NORMALIAS[nrm(s)])return NORMALIAS[nrm(s)];
+  // 項目名常被接在描述後面，如「血小板計數Platelet」「血液一般檢查(...)Hemoglobin」→ 取尾端英文詞
+  const tail=s.match(/[A-Za-z][A-Za-z0-9.\-()\/]*$/);
+  if(tail&&NORMALIAS[nrm(tail[0])])return NORMALIAS[nrm(tail[0])];
+  // 純中文項目名：掃描中文別名（長詞優先）
+  for(const [term,key] of ZH_TERMS){if(s.includes(term))return key;}
+  return s2;
+}
 const DEFS={
  WBC:'白血球：對抗感染的免疫細胞。過高常見於感染或發炎，過低則免疫力下降、易感染。',
  RBC:'紅血球：負責攜帶氧氣的血球。偏低代表貧血。',
@@ -474,6 +522,47 @@ fileIn.onchange=()=>handleFiles(fileIn.files);
 function handleFiles(files){let done=0,total=0;const arr=[...files];if(!arr.length)return;
   arr.forEach(f=>{const r=new FileReader();r.onload=()=>{try{total+=parseHealthHtml(r.result);}catch(e){console.error(e);}
     if(++done===arr.length){save();render();alert('完成，新增 '+total+' 筆數值。');}};r.readAsText(f,'UTF-8');});}
+
+// ---- PDF／截圖 OCR 辨識 ----
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const drop2=document.getElementById('drop2'),file2=document.getElementById('file2');
+drop2.onclick=()=>file2.click();
+['dragover','dragenter'].forEach(ev=>drop2.addEventListener(ev,e=>{e.preventDefault();drop2.classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>drop2.addEventListener(ev,e=>{e.preventDefault();drop2.classList.remove('hot');}));
+drop2.addEventListener('drop',e=>handleOcrFiles(e.dataTransfer.files));
+file2.onchange=()=>handleOcrFiles(file2.files);
+function appendOcr(t){const ta=document.getElementById('ocrText');ta.value+=(ta.value?'\n':'')+t;}
+async function ocrImage(blob){const r=await Tesseract.recognize(blob,'eng');return r.data.text;}
+async function ocrPdf(f,st){const buf=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  for(let p=1;p<=pdf.numPages;p++){st.textContent='辨識 '+f.name+' 第 '+p+'/'+pdf.numPages+' 頁…';
+    const page=await pdf.getPage(p);const vp=page.getViewport({scale:2});
+    const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+    await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    const blob=await new Promise(res=>cv.toBlob(res,'image/png'));appendOcr(await ocrImage(blob));}}
+async function handleOcrFiles(files){const arr=[...files];if(!arr.length)return;const st=document.getElementById('ocrStatus');
+  for(const f of arr){st.textContent='辨識中：'+f.name+' …（首次會下載辨識元件，請稍候）';
+    try{if(/\.pdf$/i.test(f.name)){await ocrPdf(f,st);}else{appendOcr(await ocrImage(f));}}
+    catch(e){console.error(e);st.textContent='辨識失敗：'+f.name+'（請改用手動輸入）';return;}}
+  st.textContent='辨識完成，請在下方核對／修正後按「解析並加入圖表」。';}
+document.getElementById('ocrClear').onclick=()=>{document.getElementById('ocrText').value='';};
+document.getElementById('ocrParse').onclick=()=>{
+  const lines=document.getElementById('ocrText').value.split(/\n/);let added=0;
+  lines.forEach(ln=>{
+    const dm=ln.match(/(\d{3})\s*\/\s*(\d{1,2})\s*\/\s*(\d{1,2})/);if(!dm)return;
+    const date=dm[1]+'/'+(+dm[2])+'/'+(+dm[3]);
+    const after=ln.slice(dm.index+dm[0].length);
+    const paren=after.match(/\(([-\d.]+)\)/);const nums=after.match(/-?\d+\.?\d*/g);
+    let val=paren?parseFloat(paren[1]):(nums?parseFloat(nums[nums.length-1]):null);
+    if(val==null||isNaN(val))return;
+    let item=after.replace(/\([^)]*\)/g,' ').replace(/-?\d+\.?\d*/g,' ').replace(/[|:：#]/g,' ').replace(/\s+/g,' ').trim();
+    if(!item)return;
+    let k=canonKey(item);
+    if(!CANON[k]){const toks=item.split(' ').filter(Boolean);for(const t of toks){const c=canonKey(t);if(CANON[c]){k=c;break;}}}
+    addReading(date,k,val);added++;
+  });
+  if(added){save();render();alert('已加入 '+added+' 筆，請務必對照原始報告核對數值。');}
+  else alert('沒有解析到可用資料。請確認每行含「民國日期＋項目＋數值」，例如：115/07/02 CRP 13.3');
+};
 
 document.getElementById('mKey').onchange=e=>{document.getElementById('mCustomWrap').style.display=e.target.value==='__custom'?'flex':'none';};
 document.getElementById('mAdd').onclick=()=>{
