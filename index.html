@@ -204,15 +204,15 @@ const CANON={
  Plt:{n:'血小板 Plt',u:'×10³/µL',lo:150,hi:400}, Seg:{n:'噬中性球 Seg',u:'%',lo:40,hi:75},
  Lymph:{n:'淋巴球 Lymph',u:'%',lo:15,hi:47}, Mono:{n:'單核球 Mono',u:'%',lo:4.4,hi:11.8},
  Eos:{n:'嗜酸性球 Eos',u:'%',lo:0.4,hi:7.5}, Baso:{n:'嗜鹼性球 Baso',u:'%',lo:0.2,hi:1.7},
- Band:{n:'帶狀核 Band',u:'%',lo:0,hi:4.2}, Blast:{n:'芽細胞 Blast',u:'%',lo:0,hi:0}, CMV:{n:'CMV病毒量',u:'IU/mL'}, CRP:{n:'發炎指數 CRP',u:'mg/L',lo:0,hi:5},
+ Band:{n:'帶狀核 Band',u:'%',lo:0,hi:4.2}, NRBC:{n:'有核紅血球 NRBC',u:'/100 WBC'}, Blast:{n:'芽細胞 Blast',u:'%',lo:0,hi:0}, CMV:{n:'CMV病毒量',u:'IU/mL'}, CRP:{n:'發炎指數 CRP',u:'mg/L',lo:0,hi:5},
  Na:{n:'鈉 Na',u:'mmol/L',lo:135,hi:145}, K:{n:'鉀 K',u:'mmol/L',lo:3.5,hi:5.1},
  CREA:{n:'肌酸酐 Creatinine',u:'mg/dL',lo:0.7,hi:1.3}, ALT:{n:'肝功能 ALT',u:'U/L',lo:0,hi:40},
- AST:{n:'肝功能 AST',u:'U/L',lo:0,hi:40}, BiliT:{n:'Bili Total',u:'mg/dL',lo:0.3,hi:1.2}, Albumin:{n:'白蛋白 Albumin',u:'g/dL',lo:3.5,hi:5},
+ AST:{n:'肝功能 AST',u:'U/L',lo:0,hi:40}, BiliT:{n:'總膽紅素 Bili Total',u:'mg/dL',lo:0.3,hi:1.2}, Albumin:{n:'白蛋白 Albumin',u:'g/dL',lo:3.5,hi:5},
  Ca:{n:'鈣 Ca',u:'mg/dL',lo:8.6,hi:10}, BUN:{n:'尿素氮 BUN',u:'mg/dL',lo:8,hi:20},
- LDH:{n:'乳酸脫氫酶 LDH',u:'U/L',lo:120,hi:250}, MCV:{n:'MCV',u:'fL',lo:82,hi:98},
- MCH:{n:'MCH',u:'pg',lo:27,hi:34}, MCHC:{n:'MCHC',u:'g/dL',lo:32,hi:36}, RDW:{n:'RDW',u:'%',lo:12,hi:15}
+ LDH:{n:'乳酸脫氫酶 LDH',u:'U/L',lo:120,hi:250}, MCV:{n:'平均紅血球體積 MCV',u:'fL',lo:82,hi:98},
+ MCH:{n:'平均紅血球血紅素量 MCH',u:'pg',lo:27,hi:34}, MCHC:{n:'平均紅血球血紅素濃度 MCHC',u:'g/dL',lo:32,hi:36}, RDW:{n:'紅血球分布寬度 RDW',u:'%',lo:12,hi:15}
 };
-const ORDER=['WBC','RBC','Hb','Plt','Hct','CRP','Seg','Blast','CMV','Albumin','Na','K','CREA','ALT','AST','BiliT','BUN','Ca','LDH','Lymph','Mono','Eos','Baso','Band','MCV','MCH','MCHC','RDW'];
+const ORDER=['WBC','RBC','Hb','Plt','Hct','CRP','Seg','Blast','CMV','Albumin','Na','K','CREA','ALT','AST','BiliT','BUN','Ca','LDH','Lymph','Mono','Eos','Baso','Band','MCV','MCH','MCHC','RDW','NRBC'];
 const ALIAS={'W.B.C.':'WBC','R.B.C.':'RBC','Platelet count':'Plt','Platelet cou':'Plt','Segment':'Seg',
  'Lym':'Lymph','Lym.':'Lymph','Lymph.':'Lymph','Mono.':'Mono','Eosin':'Eos','Eosin.':'Eos','Eos.':'Eos',
  'Baso.':'Baso','CRP/hs-CRP':'CRP','CRP/hs-':'CRP','hs-CRP':'CRP','Creatinine':'CREA','Crea':'CREA',
@@ -231,6 +231,7 @@ const NORMALIAS={}, ZH_TERMS=[];
   Eos:['Eos','Eosin','Eosinophil','Eosinophils','嗜酸性球'],
   Baso:['Baso','Basophil','Basophils','嗜鹼性球'],
   Band:['Band','Bands','帶狀核','帶狀核球'], Blast:['Blast','Blasts','芽細胞','母細胞','芽母細胞'],
+  NRBC:['NRBC','nRBC','Nucleated RBC','NucleatedRBC','有核紅血球'],
   CMV:['CMV','CMV viral load','CMV-DNA','CMV PCR','CMV DNA','巨細胞病毒','巨細胞病毒定量'],
   CRP:['CRP','hsCRP','CRPhsCRP','CReactiveProtein','C反應蛋白','發炎指數'],
   Na:['Na','Sodium','鈉'], K:['K','Potassium','鉀'], Cl:['Cl','Chloride','氯'], Ca:['Ca','Calcium','鈣'],
@@ -269,6 +270,7 @@ const DEFS={
  Eos:'嗜酸性球：白血球的一種，與過敏及寄生蟲反應有關。',
  Baso:'嗜鹼性球：白血球中數量最少的一種，參與過敏與發炎反應。',
  Band:'帶狀核球：未成熟的嗜中性球。升高常代表急性感染。',
+ NRBC:'有核紅血球：帶細胞核的未成熟紅血球，正常不應出現在周邊血液。出現常見於嚴重貧血、骨髓受壓迫或造血異常。',
  Blast:'芽細胞（母細胞）：骨髓中未成熟的血球。周邊血液出現常見於白血病或骨髓分化不良，數值越低越好。',
  CMV:'CMV病毒量（巨細胞病毒）：反映 CMV 感染活性，免疫力低下者需監測，數值越低越好。',
  CRP:'發炎指數(C反應蛋白)：發炎或感染時上升，用來追蹤發炎程度。',
